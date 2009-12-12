@@ -1,0 +1,110 @@
+#!/bin/bash
+# Simple script to create debian packages
+# for mozilla-tiff-plugin
+# Vinay Ramdas
+
+if [ $# -lt 1 ]; then
+	echo "Usage: $0 <version no>";
+	exit 1;
+fi
+
+current_version=$1
+if [ -d deb ]; then
+	rm -fr deb
+fi
+
+# create necessary dirs
+mkdir -p deb/DEBIAN
+mkdir -p deb/usr/bin
+mkdir -p deb/usr/lib/mozilla-tiff-plugin
+mkdir -p deb/usr/lib/{firefox,mozilla,mozilla-firefox,mozilla-snapshot}/plugins
+mkdir -p deb/usr/share/doc/mozilla-tiff-plugin
+
+# remove binaries and compile from source
+make clean
+make
+make plugin
+
+if [ $? -ne 0 ]; then
+	echo "Could not make properly.... exiting";
+	exit 1;
+fi
+
+# determine system architecture
+systemarch=`uname -m`
+systemarch=`echo $systemarch|sed -e 's/i686/i386/'`
+
+# fill directory structure
+cp mozilla-tiff-viewer deb/usr/bin/
+cp mozilla-tiff-plugin.so deb/usr/lib/mozilla-tiff-plugin
+cd deb/usr/lib/mozilla/plugins && ln -s ../../mozilla-tiff-plugin/mozilla-tiff-plugin.so && cd -
+cd deb/usr/lib/firefox/plugins && ln -s ../../mozilla-tiff-plugin/mozilla-tiff-plugin.so && cd -
+cd deb/usr/lib/mozilla-firefox/plugins && ln -s ../../mozilla-tiff-plugin/mozilla-tiff-plugin.so && cd -
+cd deb/usr/lib/mozilla-snapshot/plugins && ln -s ../../mozilla-tiff-plugin/mozilla-tiff-plugin.so && cd -
+cp README deb/usr/share/doc/mozilla-tiff-plugin/
+cp README.SUSE deb/usr/share/doc/mozilla-tiff-plugin/
+cp AUTHORS deb/usr/share/doc/mozilla-tiff-plugin/
+
+# calculate size
+totalsize=`du -sck deb | grep total | awk '{ print $1 }'`
+
+# calculate md5sums
+md5data=`cd deb &&  find usr -type f -exec md5sum {} \;`
+echo $md5data > deb/DEBIAN/md5sums
+
+
+# create control file 
+cat > deb/DEBIAN/control <<SAMPLECONTROLFILE
+Package: mozilla-tiff-plugin
+Priority: optional
+Section: web
+Installed-Size: $totalsize
+Maintainer: Vinay Ramdas <vinay@vinay.in>
+Architecture: $systemarch
+Version: $current_version
+Depends: libtiff-tools, mozilla-browser (>= 1.4) | mozilla-browser-snapshot | mozilla-firefox | firefox | swiftfox-athlon | swiftfox-athlon-xp | swiftfox-athlon64 | swiftfox-athlon64-32bit | swiftfox-k6-2 | swiftfox-pentium-m | swiftfox-pentium-m | swiftfox-pentium2 | swiftfox-pentium3 | swiftfox-pentium3m | swiftfox-pentium4 | swiftfox-prescott , libgtk2.0-0 (>= 2.6.0), libatk1.0-0 (>= 1.9.0), libpango1.0-0 (>= 1.8.1), libfontconfig1 (>= 2.2.1), libxinerama1, libxi6, libxrandr2, libxext6, libxcursor1, libxfixes3, libcairo2, libxrender1, libx11-6, libglib2.0-0, libfreetype6, zlib1g (>= 1:1.2.1), libexpat1, libpng12-0, libxau6, libxdmcp6
+Recommends: mozilla-bonobo, mozplugger
+Description: Mozilla plugin support for Tiff images
+ Mozilla-tiff-plugin is a Mozilla/Netscape compatible browser plugin which supports
+ viewing of tiff images in the browser.
+ .
+ The plugin is designed to run on systems with low memory footprints.
+ .
+
+SAMPLECONTROLFILE
+
+
+# create postinst file
+cat > deb/DEBIAN/postinst <<POSTINSTFILE
+#!/bin/sh
+
+POSTINSTFILE
+chmod 755 deb/DEBIAN/postinst
+
+# create prerm file
+cat > deb/DEBIAN/prerm <<PRERMFILE
+#!/bin/sh
+
+rm /usr/bin/mozilla-tiff-viewer
+rm /usr/lib/mozilla-tiff-plugin/mozilla-tiff-plugin.so
+rmdir /usr/lib/mozilla-tiff-plugin
+if [ -L /usr/lib/mozilla-firefox/plugins/mozilla-tiff-plugin.so ]; then
+        rm /usr/lib/mozilla-firefox/plugins/mozilla-tiff-plugin.so
+fi
+if [ -L /usr/lib/firefox/plugins/mozilla-tiff-plugin.so ]; then
+        rm /usr/lib/firefox/plugins/mozilla-tiff-plugin.so
+fi
+if [ -L /usr/lib/mozilla-snapshot/plugins/mozilla-tiff-plugin.so ]; then
+        rm /usr/lib/mozilla-snapshot/plugins/mozilla-tiff-plugin.so
+fi
+if [ -L /usr/lib/mozilla/plugins/mozilla-tiff-plugin.so ]; then
+        rm /usr/lib/mozilla/plugins/mozilla-tiff-plugin.so
+fi
+PRERMFILE
+chmod 755 deb/DEBIAN/prerm
+
+echo "2.0" > deb/debian-binary
+
+dpkg -b deb mozilla-tiff-plugin-${current_version}_$systemarch.deb
+#rm -fr deb
+cd .. && tar -czf mozilla-tiff-plugin/mozilla-tiff-plugin-${current_version}.tar.gz mozilla-tiff-plugin/{*.c,Makefile,README,README.SUSE,AUTHORS,gendeb} && cd -

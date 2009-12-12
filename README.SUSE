@@ -1,0 +1,77 @@
+The below information was provided by Charles Fuller. Charles, thanks for the information.
+
+1. openSUSE required packages
+-----------------------------
+openSUSE has different names for packages, so here's the translation:
+- "mozilla-dev": "mozilla-xulrunner181-devel". (Note that the package
+qt3-devel is of no use since some of the required files are "dummy"
+includes.)
+- "pkg-config": "pkgconfig".
+- "libgtk2.0-dev": "gtk2-devel"
+
+2. Changes to Makefile
+----------------------
+Here is the version of "Makefile" for the 64-bit version of Firefox:
+
+CC=gcc
+LIB=`pkg-config --libs gtk+-2.0`
+INCLUDE=`pkg-config --cflags gtk+-2.0`
+PLUGIN_INCLUDE=-I/usr/include/xulrunner-1.8.1.4/java
+-I/usr/include/xulrunner-1.8.1.4/plugin -I/usr/include/xulrunner-1.8.1.4
+-I/usr/include/xulrunner-1.8.1.4/xpcom
+-I/usr/include/xulrunner-1.8.1.4/string -I/usr/include/nspr4
+
+#CFLAGS=-g
+CFLAGS=-O
+
+#Do not change the lines below
+BIN=./mozilla-tiff-viewer
+
+viewer: mozilla-tiff-viewer.c
+$(CC) -o $(BIN) mozilla-tiff-viewer.c $(LIB) ${INCLUDE}
+
+plugin: npunix.o mozilla-tiff-plugin.o
+$(CC) -o mozilla-tiff-plugin.so -shared npunix.o mozilla-tiff-plugin.o
+
+npunix.o: npunix.c
+$(CC) -fPIC -c npunix.c ${PLUGIN_INCLUDE}
+
+mozilla-tiff-plugin.o: mozilla-tiff-plugin.c
+$(CC) -fPIC -c mozilla-tiff-plugin.c ${PLUGIN_INCLUDE}
+
+install: mozilla-tiff-viewer mozilla-tiff-plugin.so
+cp $(BIN) /usr/bin/
+mkdir /usr/lib64/mozilla-tiff-plugin && cp mozilla-tiff-plugin.so
+/usr/lib64/mozilla-tiff-plugin
+cd /usr/lib64/browser-plugins && ln -s
+/usr/lib64/mozilla-tiff-plugin/mozilla-tiff-plugin.so
+cd /usr/lib/mozilla/plugins && ln -s
+/usr/lib64/mozilla-tiff-plugin/mozilla-tiff-plugin.so
+
+clean:
+if [ -f $(BIN) ]; then rm $(BIN); fi
+if [ -f npunix.o ]; then rm npunix.o; fi
+if [ -f mozilla-tiff-plugin.o ]; then rm mozilla-tiff-plugin.o ; fi
+if [ -f mozilla-tiff-plugin.so ]; then rm mozilla-tiff-plugin.so; fi
+
+For the 32-bit version of Firefox, it should work if you replace all
+occurrences of "lib64" with "lib" (but I haven't tested this). Note that
+this depends on the version of Firefox, not the version of openSUSE
+(since you can run 32-bit Firefox on 64-bit Linux).
+
+3. Installation Instructions
+----------------------------
+a. If you get compilation or run-time errors, replace the version of
+npunix.o supplied in the mozilla-tiff-plugin download with the version
+active on your system.
+b. Change "Makefile" as described in point (2).
+c. Open a command prompt and navigate to the directory where the
+unpacked set of files exists.
+d. Type in "Make clean" and press enter.
+e. Type in "Make" and press enter.You will probably receive two warnings
+which can be ignored.
+f. Type in "Make plugin" and press enter.
+g. Type in "su -c checkinstall", and enter the password for "root".
+(This creates an RPM package so that the software shows up in YAST.)
+h. Follow the instructions from (g) to install the software.
+

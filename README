@@ -1,0 +1,41 @@
+What is it?
+-------------------
+Mozilla-tiff-plugin is a plugin for viewing tiff images on browser.
+It does not rely on any external application for viewing. A major 
+chunk of the codebase is taken from mozilla-bonobo package.
+
+Why?
+-------------------
+The available tiff plugins for the browser was mozplugger which spawned
+any application of our choice to show images on the browser. The problem
+with it was that when clicking on multiple images, the application would
+open a new window and then get back to the browser and when the number of
+images clicked in new tabs increased, the application would not get into 
+the browser too. System would become unusally slow too. So I needed a more
+smooth and less memory consuming replacement.
+
+Shortcuts
+--------------------
++ : zoom in
+- : zoom out
+a : rotate in anticlockwise direction
+c : rotate in clockwise direction
+->: right arrow for next page in multi page tiffs
+<-: left arrow for previous page in multi page tiffs
+
+
+
+Changelog
+-------------------
+Changes from 0.1
+Added message in case image is corrupted
+fixed scaling to GDL_INTERP_BILINEAR
+
+Changes from 0.2
+Added support for multi page tiffs
+improved memory management
+
+Changes from 0.3
+Added support for swiftfox
+Howto for Suse
+Minor changes to Makefile
